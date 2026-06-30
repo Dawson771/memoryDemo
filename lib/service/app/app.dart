@@ -1,0 +1,240 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:memorydemo/dao/word/word.dart';
+import 'package:memorydemo/dicts/reader.dart';
+import 'package:memorydemo/service/word/word.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+
+import '../../entity/word/po/word.dart';
+import '../../entity/word/vo/word.dart';
+
+/// 应用全局服务类
+/// 管理应用级别的配置、学习设置、单词数据转换等功能
+class AppService {
+  /// 单词服务实例
+  WordService wordService = Get.find();
+
+  /// 单词数据访问对象
+  var wordDao = Get.find<WordDao>();
+
+  /// 学习队列单词数量
+  var queueCount = 4;
+
+  /// 每日目标学习单词数
+  int dailyWantCount = 100;
+
+  /// 是否自动通过单词
+  bool autoPass = false;
+
+  /// 当前选择的书籍名称
+  String? _bookName;
+
+  /// 获取当前书籍名称，默认为第一本书
+  String get bookName {
+    return _bookName ?? wordService.bookNames[0];
+  }
+
+  /// 根据书籍名称获取书籍ID
+  String getBookId(String? bookName) {
+    return wordService.bookMap[bookName]?.id ?? "2";
+  }
+
+  /// 获取当前书籍ID（数字类型）
+  int get bookId {
+    return int.parse(getBookId(_bookName));
+  }
+
+  /// 思考等待时间（秒）
+  int thinkWaitTime = 1;
+
+  /// 阅读/展示等待时间（秒）
+  int readWaitTime = 7;
+
+  /// 艾宾浩斯记忆曲线复习时间点列表（毫秒）
+  List<int> get reviewTimes {
+    int minutes = 60 * 1000;
+    int hour = 60 * minutes;
+    int day = 24 * 60 * 60 * 1000;
+    int month = 30 * day;
+    return [
+      5 * minutes, //5分钟
+      25 * minutes, //25分钟
+      hour, //1小时
+      1 * day - hour, //1天后
+      1 * day - hour, //2天后
+      2 * day - hour, //4天后
+      3 * day - hour, //7天后
+      8 * day - hour, //15天后
+      month - 15 * day - hour, //1月后
+      1 * month - hour, //2月后
+      2 * month - hour, //4月后
+      3 * month - hour, //7月后
+      8 * month - hour, //15月后
+      15 * month - hour, //30月后
+    ];
+  }
+
+  /// 获取当前书籍的单词总数
+  int get wordCount {
+    return wordService.bookMap[bookName]?.words?.length ?? 0;
+  }
+
+  /// 加载词汇数据
+  Future<void> readWords() async {
+    await wordService.loadWords();
+  }
+
+  /// 将单词数据批量插入到数据库
+  Future<void> insertToDb() async {
+    if (bookLoaded()) {
+      return;
+    }
+    wordDao.clearWord();
+    var start = DateTime.now().millisecondsSinceEpoch;
+    var count = 0;
+    for (var book in wordService.bookMap.values) {
+      var words = book.words;
+      if (words != null) {
+        var wordPOs = words.map((e) {
+          return WordPO(word: e.id, book: book.id);
+        }).toList();
+        count += wordPOs.length;
+        await wordDao.addWords(wordPOs);
+      }
+    }
+    var end = DateTime.now().millisecondsSinceEpoch;
+    print('insert words use time: ${end - start} word count:$count');
+    setBookLoaded();
+  }
+
+  /// 检查书籍是否已加载到数据库
+  bool bookLoaded() {
+    var storage = GetStorage();
+    return storage.read("book-loaded") == "true";
+  }
+
+  /// 标记书籍已加载
+  void setBookLoaded() {
+    var storage = GetStorage();
+    storage.write("book-loaded", "true");
+    storage.save();
+  }
+
+  /// 保存学习配置选项到本地存储
+  void saveOptions() {
+    var storage = GetStorage();
+    storage.write("study.dailyWantCount", dailyWantCount);
+    storage.write("study.thinkWaitTime", thinkWaitTime);
+    storage.write("study.readWaitTime", readWaitTime);
+    storage.write("study.queueCount", queueCount);
+    storage.write("study.bookName", bookName);
+    storage.write("study.autoPass", autoPass ? "true" : "false");
+    storage.save();
+  }
+
+  /// 从本地存储读取学习配置选项
+  void readOptions() {
+    var storage = GetStorage();
+    var dailyWantCount = storage.read(
+          "study.dailyWantCount",
+        ) ??
+        "100";
+    this.dailyWantCount = int.parse(dailyWantCount.toString());
+    var thinkWaitTime = storage.read(
+          "study.thinkWaitTime",
+        ) ??
+        "1";
+    this.thinkWaitTime = int.parse(thinkWaitTime.toString());
+    var readWaitTime = storage.read(
+          "study.readWaitTime",
+        ) ??
+        "7";
+    this.readWaitTime = int.parse(readWaitTime.toString());
+    var queueCount = storage.read(
+          "study.queueCount",
+        ) ??
+        "4";
+    this.queueCount = int.parse(queueCount.toString());
+
+    _bookName = storage.read(
+      "study.bookName",
+    );
+    var autoPass = storage.read("autoPass");
+    this.autoPass = autoPass.toString() == "true";
+  }
+
+  /// 通过单词ID获取单词数据
+  Word? getWord(String? id) {
+    return wordService.wordMap[id];
+  }
+
+  /// 通过单词拼写查找单词
+  Word? getWordBySpell(String? spell) {
+    var find = wordService.wordMap.values
+        .firstWhere((element) => element.word == spell, orElse: () {
+      return Word();
+    });
+    if (find.id == null) {
+      return null;
+    }
+    return find;
+  }
+
+  /// 通过单词ID获取单词视图对象
+  WordVO? getWordVO(String? id) {
+    return toWordVO(wordService.wordMap[id]);
+  }
+
+  /// 将Word实体转换为WordVO视图对象
+  WordVO? toWordVO(Word? word) {
+    if (word != null) {
+      return WordVO(
+        wordId: word.id,
+        word: word.word,
+        usaVoice: word.usVoice,
+        ukVoice: word.ukVoice,
+        means: word.means?.split("\n"),
+        sentence: () {
+          var len = word.sentences?.length ?? 0;
+          if (len > 0) {
+            return word.sentences?[0].sentence;
+          }
+        }(),
+        sentenceMeans: () {
+          var len = word.sentences?.length ?? 0;
+          if (len > 0) {
+            return word.sentences?[0].sentenceCn;
+          }
+        }(),
+      );
+    }
+    return null;
+  }
+
+  /// 切换学习的单词书
+  void selectBook(String bookName) {
+    _bookName = bookName;
+    saveOptions();
+  }
+
+  /// 查询单词是否已被删除（标记为熟词）
+  /// [word] 单词内容
+  /// 返回true表示已删除，false表示未删除
+  Future<bool?> queryWordDeleteStatus(String? word) async {
+    var status = await wordDao.queryWordStatus(word ?? "");
+    var statusFlag = status?.status;
+    return statusFlag == -1;
+  }
+
+  /// 删除单词（标记为熟词，不再学习）
+  Future<void> deleteWord(String? wordId) async {
+    await wordDao.upsetWordStatusById(wordId, -1);
+  }
+
+  /// 恢复单词（重新加入学习）
+  Future<void> restoreWord(String? wordId) async {
+    await wordDao.upsetWordStatusById(wordId, 0);
+  }
+}
