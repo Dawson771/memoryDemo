@@ -4,11 +4,13 @@ import 'package:memorydemo/view/selectBook/selectBook.dart';
 import 'package:get/get.dart';
 
 import '../controller/home/home.dart';
+import '../controller/search/search.dart';
 import '../controller/statistic/statistic.dart';
 import '../controller/study/study.dart';
 import '../service/home/home.dart';
 import '../service/study/study.dart';
 import '../view/home/home.dart';
+import '../view/search/search.dart';
 import '../view/statistic/statistic.dart';
 import '../view/study/study.dart';
 
@@ -47,5 +49,13 @@ var pages = [
       page: () {
         Get.put(StatisticController());
         return StatisticPage();
+      }),
+
+  /// 搜索单词界面路由 - 单词搜索功能，支持模糊匹配
+  GetPage(
+      name: "/search",
+      page: () {
+        Get.put(WordSearchController());
+        return const WordSearchView();
       }),
 ];

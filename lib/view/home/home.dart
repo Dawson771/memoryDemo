@@ -59,6 +59,23 @@ class HomeView extends GetView<HomeController> {
                 height: 300,
                 child: Stack(
                   children: [
+                    // 搜索按钮（右上角）
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: Container(
+                        margin: EdgeInsets.only(top: 50, right: 16),
+                        child: IconButton(
+                          onPressed: () {
+                            Get.toNamed("/search");
+                          },
+                          icon: Icon(
+                            Icons.search,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    ),
                     Align(
                       alignment: Alignment.centerRight,
                       child: Column(

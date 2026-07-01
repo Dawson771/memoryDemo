@@ -72,7 +72,7 @@ class NoShadowScrollBehavior extends ScrollBehavior {
           showLeading: false,
           showTrailing: false,
           axisDirection: axisDirection,
-          color: Theme.of(context).accentColor,
+          color: Theme.of(context).cardColor,
           child: child,
         );
       case TargetPlatform.fuchsia:
@@ -84,7 +84,7 @@ class NoShadowScrollBehavior extends ScrollBehavior {
           //不显示尾部水波纹
           showTrailing: false,
           axisDirection: axisDirection,
-          color: Theme.of(context).accentColor,
+          color: Theme.of(context).cardColor,
           child: child,
         );
     }
