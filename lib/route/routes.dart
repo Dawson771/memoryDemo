@@ -10,6 +10,7 @@ import '../controller/study/study.dart';
 import '../service/home/home.dart';
 import '../service/study/study.dart';
 import '../view/home/home.dart';
+import '../view/plugin/view/plugin_market_page.dart';
 import '../view/search/search.dart';
 import '../view/statistic/statistic.dart';
 import '../view/study/study.dart';
@@ -58,4 +59,9 @@ var pages = [
         Get.put(WordSearchController());
         return const WordSearchView();
       }),
+
+  /// 插件市场界面路由 - 展示可用插件，支持下载安装
+  GetPage(
+      name: "/plugin-market",
+      page: () => PluginMarketPage()),
 ];

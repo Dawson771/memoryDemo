@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../controller/home/home.dart';
+import '../../plugin/manager/plugin_manager.dart';
 
 /// 首页视图
 /// 展示用户欢迎信息、当前单词书、学习进度和今日学习统计
@@ -59,20 +60,35 @@ class HomeView extends GetView<HomeController> {
                 height: 300,
                 child: Stack(
                   children: [
-                    // 搜索按钮（右上角）
+                    // 搜索按钮和插件市场按钮（右上角）
                     Align(
                       alignment: Alignment.topRight,
                       child: Container(
                         margin: EdgeInsets.only(top: 50, right: 16),
-                        child: IconButton(
-                          onPressed: () {
-                            Get.toNamed("/search");
-                          },
-                          icon: Icon(
-                            Icons.search,
-                            color: Colors.white,
-                            size: 24,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                Get.toNamed("/plugin-market");
+                              },
+                              icon: Icon(
+                                Icons.extension,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                Get.toNamed("/search");
+                              },
+                              icon: Icon(
+                                Icons.search,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -169,13 +185,13 @@ class HomeView extends GetView<HomeController> {
   }
 
   /// 构建页面内容区域
-  /// 包含书本卡片和统计卡片两部分
+  /// 包含书本卡片、统计卡片和插件卡片三部分
   Widget buildContent(BuildContext context) {
     return Column(
       children: [
-        //书本
         buildBookCard(context),
         buildStatisticCard(context),
+        buildPluginCards(context),
       ],
     );
   }
@@ -561,6 +577,58 @@ class HomeView extends GetView<HomeController> {
         ],
       ),
     );
+  }
+
+  /// 构建插件卡片区域
+  /// 动态展示已安装的插件卡片
+  Widget buildPluginCards(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(
+        top: 20,
+        left: 20,
+        right: 20,
+        bottom: 20,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "插件",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          FutureBuilder<List<dynamic>>(
+            future: _loadPluginCards(context),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                children: snapshot.data!
+                    .map((widget) => widget as Widget)
+                    .toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 加载插件卡片列表
+  Future<List<dynamic>> _loadPluginCards(BuildContext context) async {
+    var cards = <dynamic>[];
+    var wordStudyCard = PluginManager().getPluginCard('word_study', context);
+    if (wordStudyCard != null) {
+      cards.add(wordStudyCard);
+    }
+    return cards;
   }
 
   /// 切换单词书

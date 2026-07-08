@@ -6,21 +6,32 @@ part of 'floor.dart';
 // FloorGenerator
 // **************************************************************************
 
+abstract class $AppDatabaseBuilderContract {
+  /// Adds migrations to the builder.
+  $AppDatabaseBuilderContract addMigrations(List<Migration> migrations);
+
+  /// Adds a database [Callback] to the builder.
+  $AppDatabaseBuilderContract addCallback(Callback callback);
+
+  /// Creates the database and initializes it.
+  Future<AppDatabase> build();
+}
+
 // ignore: avoid_classes_with_only_static_members
 class $FloorAppDatabase {
   /// Creates a database builder for a persistent database.
   /// Once a database is built, you should keep a reference to it and re-use it.
-  static _$AppDatabaseBuilder databaseBuilder(String name) =>
+  static $AppDatabaseBuilderContract databaseBuilder(String name) =>
       _$AppDatabaseBuilder(name);
 
   /// Creates a database builder for an in memory database.
   /// Information stored in an in memory database disappears when the process is killed.
   /// Once a database is built, you should keep a reference to it and re-use it.
-  static _$AppDatabaseBuilder inMemoryDatabaseBuilder() =>
+  static $AppDatabaseBuilderContract inMemoryDatabaseBuilder() =>
       _$AppDatabaseBuilder(null);
 }
 
-class _$AppDatabaseBuilder {
+class _$AppDatabaseBuilder implements $AppDatabaseBuilderContract {
   _$AppDatabaseBuilder(this.name);
 
   final String? name;
@@ -29,19 +40,19 @@ class _$AppDatabaseBuilder {
 
   Callback? _callback;
 
-  /// Adds migrations to the builder.
-  _$AppDatabaseBuilder addMigrations(List<Migration> migrations) {
+  @override
+  $AppDatabaseBuilderContract addMigrations(List<Migration> migrations) {
     _migrations.addAll(migrations);
     return this;
   }
 
-  /// Adds a database [Callback] to the builder.
-  _$AppDatabaseBuilder addCallback(Callback callback) {
+  @override
+  $AppDatabaseBuilderContract addCallback(Callback callback) {
     _callback = callback;
     return this;
   }
 
-  /// Creates the database and initializes it.
+  @override
   Future<AppDatabase> build() async {
     final path = name != null
         ? await sqfliteDatabaseFactory.getDatabasePath(name!)
@@ -63,8 +74,11 @@ class _$AppDatabase extends AppDatabase {
 
   WordDao? _wordDaoInstance;
 
-  Future<sqflite.Database> open(String path, List<Migration> migrations,
-      [Callback? callback]) async {
+  Future<sqflite.Database> open(
+    String path,
+    List<Migration> migrations, [
+    Callback? callback,
+  ]) async {
     final databaseOptions = sqflite.OpenDatabaseOptions(
       version: 1,
       onConfigure: (database) async {
@@ -103,8 +117,10 @@ class _$AppDatabase extends AppDatabase {
 }
 
 class _$WordDao extends WordDao {
-  _$WordDao(this.database, this.changeListener)
-      : _queryAdapter = QueryAdapter(database),
+  _$WordDao(
+    this.database,
+    this.changeListener,
+  )   : _queryAdapter = QueryAdapter(database),
         _wordPOInsertionAdapter = InsertionAdapter(
             database,
             'word',
@@ -184,7 +200,10 @@ class _$WordDao extends WordDao {
   }
 
   @override
-  Future<List<WordPO>> queryNotStudyWords(int book, int count) async {
+  Future<List<WordPO>> queryNotStudyWords(
+    int book,
+    int count,
+  ) async {
     return _queryAdapter.queryList(
         'select word.* from  word word left join word_status status on word.word = status.word    where word.book=?1 and status.id is null    group by word.word    order by random()    limit ?2',
         mapper: (Map<String, Object?> row) => WordPO(id: row['id'] as int?, word: row['word'] as String?, book: row['book'] as String?),

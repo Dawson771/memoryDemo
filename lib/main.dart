@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:memorydemo/controller/app/app.dart';
 import 'package:memorydemo/dicts/reader.dart';
+import 'package:memorydemo/plugin/manager/plugin_manager.dart';
 import 'package:memorydemo/route/routes.dart';
 import 'package:memorydemo/service/app/app.dart';
 import 'package:memorydemo/service/word/word.dart';
@@ -18,7 +19,6 @@ import 'util/encypt.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  //强制竖屏
   await SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
 
@@ -40,6 +40,9 @@ void main() async {
   Get.put(WordService());
   Get.put(AppService());
   Get.put(AppController());
+
+  await PluginManager().init();
+
   runApp(const MyApp());
 }
 

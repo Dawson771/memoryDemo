@@ -90,6 +90,9 @@ dependencies:
   # 加密算法库，支持 SHA、HMAC、AES、X25519 等
   cryptography: ^2.0.5
 
+  # JSON 序列化库，用于解析插件配置
+  json_annotation: ^4.8.1
+
   # 可展开的底部面板组件
   expandable_bottom_sheet: ^1.1.1+1
 
@@ -118,6 +121,9 @@ dev_dependencies:
   # 代码构建工具，用于运行各种代码生成器（如 Floor、json_serializable 等）
   # 使用命令：flutter pub run build_runner build
   build_runner: ^2.1.2
+
+  # JSON 序列化代码生成器
+  json_serializable: ^6.7.0
 
   # 自动调整文本大小的组件，让文本在有限空间内自动缩放
   auto_size_text: ^3.0.0
